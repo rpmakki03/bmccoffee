@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAccount, useBalance, useWriteContract, useReadContract } from "wagmi";
 import { buyMeACoffeeAbi, type CoffeeMessage } from "@/lib/abi/BuyMeACoffee";
 import { Card, Input, Button } from "@/components/ui";
@@ -27,7 +27,7 @@ export default function Home() {
     functionName: "getMessages",
     chainId: chainId ?? DEFAULT_CHAIN_ID,
     query: { enabled: !!contractAddress }
-  }) as { data: CoffeeMessage[] } as any;
+  }) as unknown as { data: CoffeeMessage[] };
 
   const [tip, setTip] = useState("0.01");
   const [msg, setMsg] = useState("");
@@ -54,24 +54,26 @@ export default function Home() {
       setNotice("ETH tip sent!");
       sendEmail({ sender: address, message: msg, amount: `${tip} ETH` });
       setMsg("");
-    } catch (e: any) {
-      setNotice(e?.shortMessage || e?.message || "Failed");
+    } catch (e) {
+      const msg = (e as { shortMessage?: string; message?: string })?.shortMessage || (e as Error)?.message || "Failed";
+      setNotice(msg);
     }
   }
 
   async function onSendSol() {
     try {
-      const anyWindow = window as any;
+      const anyWindow = window as unknown as { solana?: { isPhantom?: boolean; connect: () => Promise<void>; publicKey: { toString(): string }; signAndSendTransaction: (tx: unknown) => Promise<unknown> } };
       if (!anyWindow?.solana?.isPhantom) return setNotice("Phantom wallet not found");
       await anyWindow.solana.connect();
       const sender = new PublicKey(anyWindow.solana.publicKey.toString());
       const tx = await buildSolTransferTx(sender, parseFloat(tip || "0"));
-      const signed = await anyWindow.solana.signAndSendTransaction(tx);
+      await anyWindow.solana.signAndSendTransaction(tx as unknown as any);
       setNotice("SOL tip sent!");
       sendEmail({ sender: sender.toBase58(), message: msg, amount: `${tip} SOL` });
       setMsg("");
-    } catch (e: any) {
-      setNotice(e?.message || "Failed");
+    } catch (e) {
+      const msg = (e as Error)?.message || "Failed";
+      setNotice(msg);
     }
   }
 
@@ -108,7 +110,7 @@ export default function Home() {
                 messages
                   .slice()
                   .reverse()
-                  .map((m: any, i: number) => (
+                  .map((m: CoffeeMessage, i: number) => (
                     <div key={i} className="rounded-md bg-neutral-800 p-3 text-sm">
                       <div className="text-neutral-400">{m.sender}</div>
                       <div className="text-white">{m.message}</div>

@@ -17,3 +17,4 @@ export const wagmiConfig = getDefaultConfig({
 export const DEFAULT_CHAIN_ID = sepolia.id;
 
 
+
